@@ -355,6 +355,57 @@
         box-shadow: 0 0 0 1px rgba(58, 214, 255, 0.22);
       }
 
+      /* drop the browser's default number spinners — they clash with the skin */
+      input[type="number"] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+      }
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      /* custom terminal-style stepper for max_reads */
+      .text-input.stepper {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+      }
+
+      .text-input.stepper input {
+        text-align: center;
+        padding-right: 0;
+      }
+
+      .step-group {
+        display: flex;
+        align-self: stretch;
+      }
+
+      .step-btn {
+        width: 42px;
+        align-self: stretch;
+        background: rgba(58, 214, 255, 0.06);
+        border: 0;
+        border-left: 1px solid var(--border);
+        color: var(--accent);
+        font: inherit;
+        font-size: 1.05rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+      }
+
+      .step-btn:hover,
+      .step-btn:focus-visible {
+        background: rgba(58, 214, 255, 0.18);
+        color: var(--signal);
+        outline: none;
+      }
+
+      .step-btn:active {
+        background: rgba(58, 214, 255, 0.28);
+      }
+
       .divider {
         border: 0;
         border-top: 1px dashed var(--border);
@@ -608,9 +659,13 @@
             <div class="field inline-row">
               <div>
                 <label><span class="label-index">03</span> max_reads</label>
-                <div class="text-input">
+                <div class="text-input stepper">
                   <span class="prompt" aria-hidden="true">#</span>
                   <input type="number" id="reads-input" min="1" max="{{ max_reads_cap }}" value="1" />
+                  <div class="step-group">
+                    <button type="button" class="step-btn" data-step="-1" tabindex="-1" aria-label="fewer reads">−</button>
+                    <button type="button" class="step-btn" data-step="1" tabindex="-1" aria-label="more reads">+</button>
+                  </div>
                 </div>
               </div>
               <div>
@@ -750,6 +805,18 @@
           btn.classList.add("active");
           btn.setAttribute("aria-pressed", "true");
           selectedExpiry = btn.dataset.expiry;
+        });
+      });
+
+      // custom number stepper for max_reads
+      document.querySelectorAll(".step-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const input = document.getElementById("reads-input");
+          const min = parseInt(input.min, 10) || 1;
+          const max = parseInt(input.max, 10) || 999;
+          let val = parseInt(input.value, 10);
+          if (isNaN(val)) val = min;
+          input.value = Math.max(min, Math.min(max, val + parseInt(btn.dataset.step, 10)));
         });
       });
 
