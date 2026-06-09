@@ -18,6 +18,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -eu
+            if [ ! -d ~/send/.git ]; then
+              git clone https://github.com/elaw142/send.git ~/send
+            fi
             cd ~/send
             git fetch --prune origin main
             git reset --hard origin/main
