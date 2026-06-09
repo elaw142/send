@@ -3,6 +3,4 @@
   <rect x="1" y="1" width="30" height="30" rx="5" fill="none" stroke="#3ad6ff" stroke-opacity="0.35"/>
   <!-- upward transmit arrow -->
   <path d="M16 6 L24 16 H19.5 V24 H12.5 V16 H8 Z" fill="#3ad6ff"/>
-  <!-- burn spark -->
-  <circle cx="16" cy="26.5" r="1.3" fill="#3ad6ff" fill-opacity="0.7"/>
 </svg>
