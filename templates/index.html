@@ -60,7 +60,7 @@
         height: 100%;
         pointer-events: none;
         z-index: 0;
-        opacity: 0.32;
+        opacity: 0.6;
         mix-blend-mode: screen;
       }
 
@@ -928,8 +928,7 @@
         if (!canvas) return;
         const ctx = canvas.getContext("2d", { alpha: true });
         const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-        // binary bits drifting down + fading: data in transit, self-destructing
-        const glyphs = [" ", ".", ":", "-", "+", "1", "0", "1"];
+        // binary rain: bright heads, fading trails — data streaming out
         let width = 0;
         let height = 0;
         let frameId = null;
@@ -942,6 +941,7 @@
         }
         const accent = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue("--accent"));
         const dim = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue("--accent-dim"));
+        const signal = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue("--signal"));
 
         function resize() {
           const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -971,25 +971,32 @@
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
-          for (let row = 0; row < rows; row += 1) {
-            for (let col = 0; col < cols; col += 1) {
-              const x = col * cellX;
-              const y = row * cellY;
-              // downward drift + a soft vertical fade toward the bottom (decay)
-              const drift = Math.sin(x * 0.03 + (y * 0.04 - time * 1.4));
-              const pulse = Math.cos((x - y) * 0.015 - time * 0.5);
-              let level = (drift + pulse + 2) / 4;
-              level *= 1 - y / height / 1.4; // fade as it falls
-              level = Math.max(0, Math.min(1, level));
-              if (level < 0.26) continue;
-              const idx = Math.min(glyphs.length - 1, Math.floor(level * glyphs.length));
-              const glyph = glyphs[idx];
-              if (glyph === " ") continue;
-              const r = Math.round(dim.r + (accent.r - dim.r) * level);
-              const g = Math.round(dim.g + (accent.g - dim.g) * level);
-              const b = Math.round(dim.b + (accent.b - dim.b) * level);
-              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.05 + level * 0.17})`;
-              ctx.fillText(glyph, x + cellX * 0.5, y + cellY * 0.5);
+          for (let col = 0; col < cols; col += 1) {
+            const x = col * cellX;
+            // deterministic per-column speed/length so streams differ
+            const seed = Math.sin(col * 12.9898) * 43758.5453;
+            const rnd = seed - Math.floor(seed);
+            const speed = 5 + rnd * 9; // rows per second
+            const trail = 6 + Math.floor(rnd * 9);
+            const head = (time * speed + rnd * (rows + trail)) % (rows + trail);
+            for (let d = 0; d < trail; d += 1) {
+              const r0 = Math.floor(head) - d;
+              if (r0 < 0 || r0 >= rows) continue;
+              const y = r0 * cellY;
+              const bright = 1 - d / trail;
+              const bit = (Math.floor(time * 9 + col * 7 + r0 * 3) & 1) ? "1" : "0";
+              let cr, cg, cb;
+              if (d === 0) {
+                cr = signal.r;
+                cg = signal.g;
+                cb = signal.b; // bright leading bit
+              } else {
+                cr = Math.round(dim.r + (accent.r - dim.r) * bright);
+                cg = Math.round(dim.g + (accent.g - dim.g) * bright);
+                cb = Math.round(dim.b + (accent.b - dim.b) * bright);
+              }
+              ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.12 + bright * 0.55})`;
+              ctx.fillText(bit, x + cellX * 0.5, y + cellY * 0.5);
             }
           }
           if (!reduced.matches) frameId = requestAnimationFrame(draw);
