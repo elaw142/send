@@ -1,0 +1,4 @@
+# Normalize line endings to LF in the repo so shell/YAML/Dockerfile behave on
+# the Linux server regardless of where they were edited.
+* text=auto eol=lf
+*.ico binary

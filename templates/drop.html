@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>send · incoming</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+    <link rel="icon" href="/static/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #08090b;
+        --surface-strong: #0c0f12;
+        --border: #1d2329;
+        --border-soft: #28313a;
+        --text: #e6edf2;
+        --muted: #4d5965;
+        --muted-strong: #8c9aa6;
+        --accent: #3ad6ff;
+        --accent-dim: #2a7f99;
+        --signal: #6fe3ff;
+        --error: #ff5470;
+        --shadow: rgba(58, 214, 255, 0.18);
+        --mono: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--mono);
+      }
+
+      body {
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: clamp(1rem, 4vw, 3rem);
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      body::before {
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(230, 237, 242, 0.03) 0 1px,
+          transparent 1px 4px
+        );
+        opacity: 0.4;
+      }
+
+      body::after {
+        border: 1px solid rgba(58, 214, 255, 0.08);
+        box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.86);
+      }
+
+      .container {
+        width: min(100%, 520px);
+        position: relative;
+        z-index: 1;
+      }
+
+      .kicker {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin-bottom: 0.9rem;
+        color: var(--muted-strong);
+        font-size: 0.72rem;
+      }
+
+      .kicker::before {
+        content: ">";
+        color: var(--accent);
+      }
+
+      .card {
+        background:
+          linear-gradient(180deg, rgba(58, 214, 255, 0.04), transparent 34%),
+          rgba(16, 19, 22, 0.92);
+        border: 1px solid var(--border);
+        box-shadow: 0 0 0 1px rgba(58, 214, 255, 0.035), 0 24px 80px rgba(0, 0, 0, 0.42);
+        position: relative;
+      }
+
+      .card::before,
+      .card::after {
+        color: var(--accent);
+        font-size: 0.8rem;
+        position: absolute;
+        top: -0.7rem;
+      }
+
+      .card::before {
+        content: "+";
+        left: -0.28rem;
+      }
+
+      .card::after {
+        content: "+";
+        right: -0.28rem;
+      }
+
+      .bar {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-soft);
+        background: var(--surface-strong);
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+
+      .bar-state {
+        color: var(--accent);
+      }
+
+      .body {
+        padding: clamp(1.25rem, 4vw, 2rem);
+      }
+
+      .readout {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+        border: 1px solid var(--border-soft);
+        background: var(--border-soft);
+        margin-bottom: 1.5rem;
+      }
+
+      .readout span {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background: rgba(8, 9, 11, 0.72);
+        color: var(--muted);
+        font-size: 0.7rem;
+      }
+
+      .readout b {
+        color: var(--accent);
+        font-weight: 500;
+      }
+
+      .filename {
+        color: var(--accent);
+        font-size: 1rem;
+        word-break: break-all;
+        margin-bottom: 0.3rem;
+        text-shadow: 0 0 16px var(--shadow);
+      }
+
+      .submeta {
+        color: var(--muted-strong);
+        font-size: 0.74rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .ttl-track {
+        height: 6px;
+        margin-bottom: 1.5rem;
+        background: var(--border-soft);
+        overflow: hidden;
+      }
+
+      .ttl-fill {
+        height: 100%;
+        width: 100%;
+        background: var(--accent);
+        box-shadow: 0 0 12px var(--shadow);
+        transition: width 1s linear;
+      }
+
+      .pw-input {
+        display: none;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        min-height: 50px;
+        margin-bottom: 1rem;
+        background: rgba(8, 9, 11, 0.96);
+        border: 1px solid var(--border);
+      }
+
+      .pw-input.show {
+        display: grid;
+      }
+
+      .pw-input .prompt {
+        padding: 0 0.95rem;
+        color: var(--accent);
+      }
+
+      .pw-input input {
+        width: 100%;
+        min-height: 48px;
+        background: transparent;
+        border: 0;
+        color: var(--text);
+        font: inherit;
+        font-size: 0.85rem;
+        outline: none;
+        padding: 0.7rem 0.9rem 0.7rem 0;
+      }
+
+      .pw-input:focus-within {
+        border-color: var(--accent);
+      }
+
+      .btn {
+        min-height: 56px;
+        width: 100%;
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        cursor: pointer;
+        background: var(--accent);
+        border: 1px solid var(--accent);
+        color: #07090b;
+        transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+      }
+
+      .btn:hover:not(:disabled),
+      .btn:focus-visible:not(:disabled) {
+        background: var(--signal);
+        transform: translateY(-1px);
+        outline: none;
+      }
+
+      .btn:disabled {
+        opacity: 0.42;
+        cursor: not-allowed;
+      }
+
+      .status {
+        min-height: 1.3rem;
+        margin-top: 0.9rem;
+        color: var(--muted);
+        font-size: 0.74rem;
+      }
+
+      .status.error {
+        color: var(--error);
+      }
+
+      .closed {
+        text-align: center;
+        padding: 1rem 0 0.3rem;
+        color: var(--muted-strong);
+      }
+
+      .closed .big {
+        color: var(--error);
+        font-size: 1.05rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      footer {
+        margin-top: 1rem;
+        color: var(--muted);
+        font-size: 0.72rem;
+        text-align: center;
+      }
+
+      .site-mark {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <div class="kicker">send://incoming-transmission</div>
+
+      <section class="card">
+        <div class="bar">
+          <span>~$ ./receive</span>
+          <span class="bar-state" id="bar-state">SESSION=LIVE</span>
+        </div>
+
+        <div class="body">
+          <!-- LIVE STATE -->
+          <div id="live">
+            <div class="readout" aria-hidden="true">
+              <span>TTL=<b id="ttl">--:--</b></span>
+              <span>READS=<b id="reads">-</b></span>
+            </div>
+
+            <div class="filename" id="filename">resolving…</div>
+            <div class="submeta" id="submeta">&nbsp;</div>
+
+            <div class="ttl-track" aria-hidden="true"><div class="ttl-fill" id="fill"></div></div>
+
+            <div class="pw-input" id="pw-wrap">
+              <span class="prompt" aria-hidden="true">*</span>
+              <input type="password" id="pw" placeholder="this drop is password protected" />
+            </div>
+
+            <button type="button" class="btn" id="download-btn">[ download + claim ]</button>
+            <div class="status" id="status" aria-live="polite"></div>
+          </div>
+
+          <!-- CLOSED STATE -->
+          <div id="closed" class="closed hidden">
+            <div class="big">// channel closed</div>
+            <div>this link has expired, been claimed, or was burned.</div>
+            <div style="margin-top:1.2rem">
+              <a class="site-mark" href="/">[ send your own → ]</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <a class="site-mark" href="/">send</a> — ephemeral file relay
+      </footer>
+    </main>
+
+    <script>
+      const TOKEN = {{ token | tojson }};
+      const INITIAL = {{ meta | tojson }};
+
+      const live = document.getElementById("live");
+      const closed = document.getElementById("closed");
+      const barState = document.getElementById("bar-state");
+      const ttlEl = document.getElementById("ttl");
+      const readsEl = document.getElementById("reads");
+      const fillEl = document.getElementById("fill");
+      const filenameEl = document.getElementById("filename");
+      const submetaEl = document.getElementById("submeta");
+      const pwWrap = document.getElementById("pw-wrap");
+      const pwInput = document.getElementById("pw");
+      const downloadBtn = document.getElementById("download-btn");
+      const statusEl = document.getElementById("status");
+
+      let meta = INITIAL;
+      let countdownTimer = null;
+      let pollTimer = null;
+
+      function fmtSize(bytes) {
+        const units = ["B", "KB", "MB", "GB"];
+        let n = bytes;
+        let i = 0;
+        while (n >= 1024 && i < units.length - 1) {
+          n /= 1024;
+          i += 1;
+        }
+        return `${n < 10 && i > 0 ? n.toFixed(1) : Math.round(n)}${units[i]}`;
+      }
+
+      function fmtClock(seconds) {
+        if (seconds <= 0) return "00:00";
+        const d = Math.floor(seconds / 86400);
+        const h = Math.floor((seconds % 86400) / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        const pad = (x) => String(x).padStart(2, "0");
+        if (d > 0) return `${d}d ${pad(h)}:${pad(m)}`;
+        if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+        return `${pad(m)}:${pad(s)}`;
+      }
+
+      function showClosed() {
+        clearInterval(countdownTimer);
+        clearInterval(pollTimer);
+        live.classList.add("hidden");
+        closed.classList.remove("hidden");
+        barState.textContent = "SESSION=CLOSED";
+      }
+
+      function render() {
+        if (!meta) {
+          showClosed();
+          return;
+        }
+        filenameEl.textContent = meta.filename;
+        submetaEl.textContent = `${fmtSize(meta.size)}${meta.protected ? " · password protected" : ""}`;
+        readsEl.textContent = meta.reads_left;
+        if (meta.protected) pwWrap.classList.add("show");
+
+        const total = meta.expires_at - meta.created;
+        function tick() {
+          const now = Math.floor(Date.now() / 1000);
+          const remaining = meta.expires_at - now;
+          if (remaining <= 0) {
+            showClosed();
+            return;
+          }
+          ttlEl.textContent = fmtClock(remaining);
+          fillEl.style.width = `${Math.max(0, (remaining / total) * 100)}%`;
+        }
+        tick();
+        countdownTimer = setInterval(tick, 1000);
+
+        // keep reads_left fresh in case someone else claims a read
+        pollTimer = setInterval(() => {
+          fetch(`/api/meta/${TOKEN}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((m) => {
+              if (!m) {
+                showClosed();
+                return;
+              }
+              readsEl.textContent = m.reads_left;
+            })
+            .catch(() => {});
+        }, 5000);
+      }
+
+      downloadBtn.addEventListener("click", () => {
+        if (!meta) return;
+        if (meta.protected) claimViaFetch();
+        else claimViaStream();
+      });
+
+      // Non-protected: let the browser stream the response straight to disk.
+      // This is the path that matters for multi-GB files — nothing is buffered
+      // in the tab's memory.
+      function claimViaStream() {
+        downloadBtn.disabled = true;
+        statusEl.classList.remove("error");
+        statusEl.textContent = "claiming — your download should begin…";
+        const a = document.createElement("a");
+        a.href = `/api/file/${TOKEN}`;
+        a.download = meta.filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(refreshAfterClaim, 2000);
+      }
+
+      // Password-protected: the password must travel in a header, so we fetch.
+      // (Large protected files get loaded in the tab — keep huge transfers
+      // unprotected, letting the unguessable link itself be the secret.)
+      function claimViaFetch() {
+        downloadBtn.disabled = true;
+        statusEl.classList.remove("error");
+        statusEl.textContent = "claiming…";
+        fetch(`/api/file/${TOKEN}`, { headers: { "X-Send-Password": pwInput.value || "" } })
+          .then((res) => {
+            if (res.status === 401) {
+              statusEl.textContent = "wrong or missing password";
+              statusEl.classList.add("error");
+              downloadBtn.disabled = false;
+              return null;
+            }
+            if (!res.ok) {
+              showClosed();
+              return null;
+            }
+            return res.blob();
+          })
+          .then((blob) => {
+            if (!blob) return;
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = meta.filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            refreshAfterClaim();
+          })
+          .catch(() => {
+            statusEl.textContent = "download failed";
+            statusEl.classList.add("error");
+            downloadBtn.disabled = false;
+          });
+      }
+
+      function refreshAfterClaim() {
+        statusEl.textContent = "verifying channel…";
+        fetch(`/api/meta/${TOKEN}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((m) => {
+            if (!m) {
+              showClosed();
+              return;
+            }
+            meta = m;
+            readsEl.textContent = m.reads_left;
+            statusEl.textContent = `claimed — ${m.reads_left} read(s) left`;
+            downloadBtn.disabled = false;
+          })
+          .catch(() => {
+            downloadBtn.disabled = false;
+          });
+      }
+
+      render();
+    </script>
+  </body>
+</html>

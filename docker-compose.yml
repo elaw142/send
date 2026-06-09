@@ -1,0 +1,22 @@
+services:
+  send:
+    build: .
+    container_name: send
+    restart: unless-stopped
+    ports:
+      - "5010:5010"
+    environment:
+      SEND_MAX_FILE_MB: ${SEND_MAX_FILE_MB:-4096}
+      SEND_MAX_TOTAL_MB: ${SEND_MAX_TOTAL_MB:-20480}
+      SEND_MAX_READS: ${SEND_MAX_READS:-20}
+    volumes:
+      - send_data:/data
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
+
+volumes:
+  send_data:

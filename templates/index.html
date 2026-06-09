@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>send</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+    <link rel="icon" href="/static/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #08090b;
+        --surface: #101316;
+        --surface-strong: #0c0f12;
+        --border: #1d2329;
+        --border-soft: #28313a;
+        --text: #e6edf2;
+        --muted: #4d5965;
+        --muted-strong: #8c9aa6;
+        --accent: #3ad6ff;
+        --accent-dim: #2a7f99;
+        --signal: #6fe3ff;
+        --error: #ff5470;
+        --shadow: rgba(58, 214, 255, 0.18);
+        --mono: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--mono);
+        font-weight: 400;
+      }
+
+      body {
+        min-height: 100dvh;
+        padding: clamp(1rem, 4vw, 3rem);
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      .field-bg {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.32;
+        mix-blend-mode: screen;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      body::before {
+        background: repeating-linear-gradient(
+          0deg,
+          rgba(230, 237, 242, 0.03) 0 1px,
+          transparent 1px 4px
+        );
+        opacity: 0.4;
+      }
+
+      body::after {
+        border: 1px solid rgba(58, 214, 255, 0.08);
+        box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.86);
+      }
+
+      .container {
+        width: min(100%, 760px);
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+      }
+
+      header {
+        padding: clamp(0.5rem, 3vw, 1rem) 0 1.25rem;
+      }
+
+      .kicker {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin-bottom: 0.8rem;
+        color: var(--muted-strong);
+        font-size: 0.72rem;
+        text-transform: lowercase;
+      }
+
+      .kicker::before {
+        content: ">";
+        color: var(--accent);
+      }
+
+      .wordmark {
+        color: var(--accent);
+        font-size: clamp(0.5rem, 1.7vw, 0.9rem);
+        line-height: 1.05;
+        text-shadow: 0 0 18px var(--shadow);
+        white-space: pre;
+        overflow: hidden;
+        margin-bottom: 0.75rem;
+      }
+
+      .tagline {
+        color: var(--muted-strong);
+        font-size: 0.72rem;
+      }
+
+      .tagline::after {
+        content: "_";
+        color: var(--accent);
+        animation: caret 1.05s steps(1, end) infinite;
+      }
+
+      .card {
+        background:
+          linear-gradient(180deg, rgba(58, 214, 255, 0.04), transparent 34%),
+          rgba(16, 19, 22, 0.92);
+        border: 1px solid var(--border);
+        box-shadow: 0 0 0 1px rgba(58, 214, 255, 0.035), 0 24px 80px rgba(0, 0, 0, 0.42);
+        position: relative;
+        backdrop-filter: blur(1px);
+      }
+
+      .card::before,
+      .card::after {
+        color: var(--accent);
+        font-size: 0.8rem;
+        position: absolute;
+        top: -0.7rem;
+      }
+
+      .card::before {
+        content: "+";
+        left: -0.28rem;
+      }
+
+      .card::after {
+        content: "+";
+        right: -0.28rem;
+      }
+
+      .bar {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-soft);
+        background: var(--surface-strong);
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+
+      .bar-title {
+        color: var(--muted-strong);
+      }
+
+      .bar-state {
+        color: var(--accent);
+      }
+
+      .body {
+        padding: clamp(1rem, 3.5vw, 1.75rem);
+      }
+
+      .readout {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        border: 1px solid var(--border-soft);
+        background: var(--border-soft);
+        margin-bottom: 1.4rem;
+      }
+
+      .readout span {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background: rgba(8, 9, 11, 0.72);
+        color: var(--muted);
+        font-size: 0.68rem;
+        white-space: nowrap;
+      }
+
+      .readout b {
+        color: var(--accent);
+        font-weight: 500;
+      }
+
+      label {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        color: var(--muted);
+        font-size: 0.72rem;
+        margin-bottom: 0.55rem;
+        text-transform: uppercase;
+      }
+
+      .label-index {
+        color: var(--accent-dim);
+      }
+
+      .field {
+        margin-bottom: 1.35rem;
+      }
+
+      /* dropzone */
+      .dropzone {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.55rem;
+        min-height: 132px;
+        padding: 1.5rem;
+        text-align: center;
+        background: rgba(8, 9, 11, 0.96);
+        border: 1px dashed var(--border-soft);
+        color: var(--muted);
+        font-size: 0.78rem;
+        cursor: pointer;
+        transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+      }
+
+      .dropzone:hover,
+      .dropzone:focus-visible,
+      .dropzone.drag {
+        border-color: var(--accent);
+        color: var(--text);
+        background: rgba(58, 214, 255, 0.05);
+        outline: none;
+      }
+
+      .dropzone .glyph {
+        color: var(--accent);
+        font-size: 1.5rem;
+        line-height: 1;
+      }
+
+      .dropzone .hint {
+        color: var(--muted);
+        font-size: 0.68rem;
+      }
+
+      .dropzone.staged {
+        border-style: solid;
+        border-color: var(--accent);
+        color: var(--text);
+        align-items: flex-start;
+        text-align: left;
+      }
+
+      .staged-name {
+        color: var(--accent);
+        word-break: break-all;
+      }
+
+      /* expiry / reads / password */
+      .opt-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.5rem;
+      }
+
+      .opt-btn {
+        min-height: 44px;
+        font: inherit;
+        font-size: 0.74rem;
+        cursor: pointer;
+        text-transform: uppercase;
+        background: rgba(8, 9, 11, 0.94);
+        border: 1px solid var(--border-soft);
+        color: var(--muted);
+        transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+      }
+
+      .opt-btn:hover,
+      .opt-btn:focus-visible {
+        border-color: var(--accent);
+        color: var(--text);
+        outline: none;
+      }
+
+      .opt-btn.active {
+        background: rgba(58, 214, 255, 0.1);
+        border-color: var(--accent);
+        color: var(--accent);
+        box-shadow: inset 0 -2px 0 var(--accent);
+      }
+
+      .inline-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+
+      .text-input {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        min-height: 48px;
+        background: rgba(8, 9, 11, 0.96);
+        border: 1px solid var(--border);
+      }
+
+      .text-input .prompt {
+        padding: 0 0.85rem;
+        color: var(--accent);
+      }
+
+      .text-input input {
+        width: 100%;
+        min-height: 46px;
+        background: transparent;
+        border: 0;
+        color: var(--text);
+        font: inherit;
+        font-size: 0.82rem;
+        outline: none;
+        padding: 0.7rem 0.9rem 0.7rem 0;
+      }
+
+      .text-input input::placeholder {
+        color: var(--muted);
+      }
+
+      .text-input:focus-within {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px rgba(58, 214, 255, 0.22);
+      }
+
+      .divider {
+        border: 0;
+        border-top: 1px dashed var(--border);
+        margin: 1.5rem 0;
+      }
+
+      .btn {
+        min-height: 52px;
+        width: 100%;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        cursor: pointer;
+        background: var(--accent);
+        border: 1px solid var(--accent);
+        color: #07090b;
+        transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+      }
+
+      .btn:hover:not(:disabled),
+      .btn:focus-visible:not(:disabled) {
+        background: var(--signal);
+        transform: translateY(-1px);
+        outline: none;
+      }
+
+      .btn:disabled {
+        opacity: 0.42;
+        cursor: not-allowed;
+      }
+
+      .btn.ghost {
+        background: transparent;
+        color: var(--accent);
+        font-weight: 500;
+      }
+
+      .btn.ghost:hover:not(:disabled),
+      .btn.ghost:focus-visible:not(:disabled) {
+        background: rgba(58, 214, 255, 0.1);
+      }
+
+      .btn.danger {
+        background: transparent;
+        border-color: var(--error);
+        color: var(--error);
+        font-weight: 500;
+      }
+
+      .btn.danger:hover:not(:disabled),
+      .btn.danger:focus-visible:not(:disabled) {
+        background: rgba(255, 84, 112, 0.12);
+      }
+
+      .status {
+        min-height: 1.4rem;
+        margin-top: 1rem;
+        color: var(--muted);
+        font-size: 0.74rem;
+      }
+
+      .status.error {
+        color: var(--error);
+      }
+
+      /* ticket */
+      .ticket {
+        display: none;
+      }
+
+      .ticket.show {
+        display: block;
+      }
+
+      .link-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: stretch;
+        gap: 0.5rem;
+        margin-bottom: 1.2rem;
+      }
+
+      .link-box {
+        display: flex;
+        align-items: center;
+        min-height: 50px;
+        padding: 0 0.95rem;
+        background: rgba(8, 9, 11, 0.96);
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        font-size: 0.82rem;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      .copy-btn {
+        min-width: 84px;
+        font: inherit;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        cursor: pointer;
+        background: rgba(58, 214, 255, 0.1);
+        border: 1px solid var(--accent);
+        color: var(--accent);
+      }
+
+      .copy-btn:hover,
+      .copy-btn:focus-visible {
+        background: rgba(58, 214, 255, 0.2);
+        outline: none;
+      }
+
+      .ttl-track {
+        height: 6px;
+        margin: 0.2rem 0 0.4rem;
+        background: var(--border-soft);
+        overflow: hidden;
+      }
+
+      .ttl-fill {
+        height: 100%;
+        width: 100%;
+        background: var(--accent);
+        box-shadow: 0 0 12px var(--shadow);
+        transition: width 1s linear;
+      }
+
+      .ticket-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.9rem;
+        margin-top: 1.3rem;
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 1rem;
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+
+      .site-mark {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .site-mark:hover {
+        color: var(--text);
+        text-decoration: underline;
+        text-underline-offset: 0.22rem;
+      }
+
+      @keyframes caret {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      @media (max-width: 660px) {
+        body {
+          padding: 1rem;
+        }
+        .wordmark {
+          font-size: clamp(0.46rem, 2.6vw, 0.66rem);
+        }
+        .bar,
+        footer {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.35rem;
+        }
+        .readout,
+        .opt-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .inline-row,
+        .ticket-actions {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas class="field-bg" id="field-bg" aria-hidden="true"></canvas>
+    <main class="container">
+      <header>
+        <div class="kicker">send://secure-relay</div>
+        <pre class="wordmark" aria-label="send">
+ ___  ___ _ __   __| |
+/ __|/ _ \ '_ \ / _` |
+\__ \  __/ | | | (_| |
+|___/\___|_| |_|\__,_|
+        </pre>
+        <div class="tagline">[ drop::burn ] / self-destructing file relay </div>
+      </header>
+
+      <section class="card" aria-label="send console">
+        <div class="bar">
+          <span class="bar-title" id="bar-title">~$ ./send</span>
+          <span class="bar-state" id="bar-state">SESSION=READY</span>
+        </div>
+
+        <div class="body">
+          <!-- SENDER -->
+          <form id="send-form" autocomplete="off">
+            <div class="readout" aria-hidden="true">
+              <span>MODE=<b>RELAY</b></span>
+              <span>MAX=<b>{{ max_file_mb }}MB</b></span>
+              <span>STATE=<b id="readout-state">IDLE</b></span>
+            </div>
+
+            <div class="field">
+              <label><span class="label-index">01</span> payload</label>
+              <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choose or drop a file">
+                <span class="glyph" aria-hidden="true">[ ↑ ]</span>
+                <span id="drop-label">drop a file here, or click to browse</span>
+                <span class="hint" id="drop-hint">nothing leaves your machine until you arm it</span>
+              </div>
+              <input type="file" id="file-input" hidden />
+            </div>
+
+            <div class="field">
+              <label><span class="label-index">02</span> expires_in</label>
+              <div class="opt-grid" id="expiry-grid" role="group" aria-label="Expiry">
+                {% for opt in expiry_options %}
+                <button
+                  type="button"
+                  class="opt-btn {% if opt == default_expiry %}active{% endif %}"
+                  data-expiry="{{ opt }}"
+                  aria-pressed="{% if opt == default_expiry %}true{% else %}false{% endif %}"
+                >
+                  {{ opt }}
+                </button>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="field inline-row">
+              <div>
+                <label><span class="label-index">03</span> max_reads</label>
+                <div class="text-input">
+                  <span class="prompt" aria-hidden="true">#</span>
+                  <input type="number" id="reads-input" min="1" max="{{ max_reads_cap }}" value="1" />
+                </div>
+              </div>
+              <div>
+                <label><span class="label-index">04</span> password <span style="color:var(--muted)">(optional)</span></label>
+                <div class="text-input">
+                  <span class="prompt" aria-hidden="true">*</span>
+                  <input type="password" id="pw-input" placeholder="leave blank for none" />
+                </div>
+              </div>
+            </div>
+
+            <hr class="divider" />
+
+            <button type="submit" class="btn" id="arm-btn" disabled>[ arm + transmit ]</button>
+            <div class="status" id="status" aria-live="polite"></div>
+          </form>
+
+          <!-- TICKET -->
+          <div class="ticket" id="ticket">
+            <div class="readout" aria-hidden="true">
+              <span>TTL=<b id="t-ttl">--:--</b></span>
+              <span>READS=<b id="t-reads">1</b></span>
+              <span>STATE=<b id="t-state">ARMED</b></span>
+            </div>
+
+            <label>share link</label>
+            <div class="link-row">
+              <div class="link-box" id="t-link"></div>
+              <button type="button" class="copy-btn" id="copy-btn">copy</button>
+            </div>
+
+            <div class="ttl-track" aria-hidden="true"><div class="ttl-fill" id="t-fill"></div></div>
+            <div class="status" id="t-meta"></div>
+
+            <div class="ticket-actions">
+              <button type="button" class="btn ghost" id="new-btn">[ send another ]</button>
+              <button type="button" class="btn danger" id="burn-btn">[ burn now ]</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <a class="site-mark" href="https://github.com/elaw142" target="_blank" rel="noreferrer">[site] elaw142 // github</a>
+        <span>[ burn ] one read or one timer, whichever comes first</span>
+      </footer>
+    </main>
+
+    <script>
+      const form = document.getElementById("send-form");
+      const ticket = document.getElementById("ticket");
+      const dropzone = document.getElementById("dropzone");
+      const fileInput = document.getElementById("file-input");
+      const dropLabel = document.getElementById("drop-label");
+      const dropHint = document.getElementById("drop-hint");
+      const armBtn = document.getElementById("arm-btn");
+      const statusEl = document.getElementById("status");
+      const readoutState = document.getElementById("readout-state");
+      const barState = document.getElementById("bar-state");
+
+      let stagedFile = null;
+      let selectedExpiry = "{{ default_expiry }}";
+      let countdownTimer = null;
+
+      function fmtSize(bytes) {
+        const units = ["B", "KB", "MB", "GB"];
+        let n = bytes;
+        let i = 0;
+        while (n >= 1024 && i < units.length - 1) {
+          n /= 1024;
+          i += 1;
+        }
+        return `${n < 10 && i > 0 ? n.toFixed(1) : Math.round(n)}${units[i]}`;
+      }
+
+      function fmtClock(seconds) {
+        if (seconds <= 0) return "00:00";
+        const d = Math.floor(seconds / 86400);
+        const h = Math.floor((seconds % 86400) / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        const pad = (x) => String(x).padStart(2, "0");
+        if (d > 0) return `${d}d ${pad(h)}:${pad(m)}`;
+        if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+        return `${pad(m)}:${pad(s)}`;
+      }
+
+      function setStatus(msg, isError) {
+        statusEl.textContent = msg || "";
+        statusEl.classList.toggle("error", !!isError);
+      }
+
+      // dropzone wiring
+      dropzone.addEventListener("click", () => fileInput.click());
+      dropzone.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          fileInput.click();
+        }
+      });
+      ["dragenter", "dragover"].forEach((ev) =>
+        dropzone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          dropzone.classList.add("drag");
+        })
+      );
+      ["dragleave", "drop"].forEach((ev) =>
+        dropzone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          dropzone.classList.remove("drag");
+        })
+      );
+      dropzone.addEventListener("drop", (e) => {
+        if (e.dataTransfer.files.length) stageFile(e.dataTransfer.files[0]);
+      });
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files.length) stageFile(fileInput.files[0]);
+      });
+
+      function stageFile(file) {
+        stagedFile = file;
+        dropzone.classList.add("staged");
+        dropLabel.innerHTML = `<span class="staged-name">${escHtml(file.name)}</span>`;
+        dropHint.textContent = `${fmtSize(file.size)} · ready to transmit`;
+        readoutState.textContent = "STAGED";
+        armBtn.disabled = false;
+        setStatus("");
+      }
+
+      // expiry buttons
+      document.querySelectorAll("[data-expiry]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("[data-expiry]").forEach((b) => {
+            b.classList.remove("active");
+            b.setAttribute("aria-pressed", "false");
+          });
+          btn.classList.add("active");
+          btn.setAttribute("aria-pressed", "true");
+          selectedExpiry = btn.dataset.expiry;
+        });
+      });
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        transmit();
+      });
+
+      function transmit() {
+        if (!stagedFile) return;
+        armBtn.disabled = true;
+        readoutState.textContent = "SENDING";
+        barState.textContent = "SESSION=TRANSMIT";
+        setStatus("encrypting channel + uploading...");
+
+        const fd = new FormData();
+        fd.append("file", stagedFile);
+        fd.append("expiry", selectedExpiry);
+        fd.append("max_reads", document.getElementById("reads-input").value || "1");
+        fd.append("password", document.getElementById("pw-input").value || "");
+
+        fetch("/api/upload", { method: "POST", body: fd })
+          .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
+          .then(({ ok, data }) => {
+            if (!ok) {
+              setStatus(data.error || "upload failed", true);
+              armBtn.disabled = false;
+              readoutState.textContent = "STAGED";
+              barState.textContent = "SESSION=READY";
+              return;
+            }
+            showTicket(data);
+          })
+          .catch(() => {
+            setStatus("network error", true);
+            armBtn.disabled = false;
+            readoutState.textContent = "STAGED";
+          });
+      }
+
+      function showTicket(drop) {
+        form.style.display = "none";
+        ticket.classList.add("show");
+        barState.textContent = "SESSION=ARMED";
+        document.getElementById("bar-title").textContent = "~$ ./send --armed";
+
+        document.getElementById("t-link").textContent = drop.url;
+        document.getElementById("t-reads").textContent = drop.reads_left;
+        document.getElementById("t-state").textContent = drop.protected ? "LOCKED" : "ARMED";
+
+        const created = drop.created;
+        const expires = drop.expires_at;
+        const total = expires - created;
+        const fill = document.getElementById("t-fill");
+        const ttlEl = document.getElementById("t-ttl");
+        const metaEl = document.getElementById("t-meta");
+        metaEl.textContent = `${escHtml(drop.filename)} · ${fmtSize(drop.size)}${
+          drop.protected ? " · password protected" : ""
+        }`;
+
+        function tick() {
+          const now = Math.floor(Date.now() / 1000);
+          const remaining = expires - now;
+          if (remaining <= 0) {
+            ttlEl.textContent = "00:00";
+            fill.style.width = "0%";
+            document.getElementById("t-state").textContent = "EXPIRED";
+            clearInterval(countdownTimer);
+            return;
+          }
+          ttlEl.textContent = fmtClock(remaining);
+          fill.style.width = `${Math.max(0, (remaining / total) * 100)}%`;
+        }
+        tick();
+        countdownTimer = setInterval(tick, 1000);
+
+        document.getElementById("copy-btn").onclick = () => {
+          navigator.clipboard.writeText(drop.url).then(() => {
+            const b = document.getElementById("copy-btn");
+            b.textContent = "copied";
+            setTimeout(() => (b.textContent = "copy"), 1400);
+          });
+        };
+
+        document.getElementById("burn-btn").onclick = () => {
+          fetch(`/api/burn/${drop.token}`, { method: "POST" }).finally(() => {
+            clearInterval(countdownTimer);
+            document.getElementById("t-state").textContent = "BURNED";
+            fill.style.width = "0%";
+            ttlEl.textContent = "--:--";
+            metaEl.textContent = "// channel closed — this link is dead";
+          });
+        };
+
+        document.getElementById("new-btn").onclick = () => location.reload();
+      }
+
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      // background: a field of glyphs that drift downward and fade — decay/transmission.
+      function initField() {
+        const canvas = document.getElementById("field-bg");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d", { alpha: true });
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+        // binary bits drifting down + fading: data in transit, self-destructing
+        const glyphs = [" ", ".", ":", "-", "+", "1", "0", "1"];
+        let width = 0;
+        let height = 0;
+        let frameId = null;
+        let last = 0;
+
+        function hexToRgb(hex) {
+          const c = hex.trim().replace("#", "");
+          const v = parseInt(c.length === 3 ? c.split("").map((x) => x + x).join("") : c, 16);
+          return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
+        }
+        const accent = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue("--accent"));
+        const dim = hexToRgb(getComputedStyle(document.documentElement).getPropertyValue("--accent-dim"));
+
+        function resize() {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          width = window.innerWidth;
+          height = window.innerHeight;
+          canvas.width = Math.ceil(width * dpr);
+          canvas.height = Math.ceil(height * dpr);
+          canvas.style.width = `${width}px`;
+          canvas.style.height = `${height}px`;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function draw(ts = 0) {
+          if (ts - last < 33 && !reduced.matches) {
+            frameId = requestAnimationFrame(draw);
+            return;
+          }
+          last = ts;
+          const time = reduced.matches ? 6 : ts * 0.001;
+          const cellX = width < 640 ? 16 : 18;
+          const cellY = width < 640 ? 18 : 20;
+          const cols = Math.ceil(width / cellX) + 1;
+          const rows = Math.ceil(height / cellY) + 1;
+
+          ctx.clearRect(0, 0, width, height);
+          ctx.font = `${Math.max(10, cellX * 0.82)}px ${getComputedStyle(document.documentElement).getPropertyValue("--mono")}`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+
+          for (let row = 0; row < rows; row += 1) {
+            for (let col = 0; col < cols; col += 1) {
+              const x = col * cellX;
+              const y = row * cellY;
+              // downward drift + a soft vertical fade toward the bottom (decay)
+              const drift = Math.sin(x * 0.03 + (y * 0.04 - time * 1.4));
+              const pulse = Math.cos((x - y) * 0.015 - time * 0.5);
+              let level = (drift + pulse + 2) / 4;
+              level *= 1 - y / height / 1.4; // fade as it falls
+              level = Math.max(0, Math.min(1, level));
+              if (level < 0.26) continue;
+              const idx = Math.min(glyphs.length - 1, Math.floor(level * glyphs.length));
+              const glyph = glyphs[idx];
+              if (glyph === " ") continue;
+              const r = Math.round(dim.r + (accent.r - dim.r) * level);
+              const g = Math.round(dim.g + (accent.g - dim.g) * level);
+              const b = Math.round(dim.b + (accent.b - dim.b) * level);
+              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.05 + level * 0.17})`;
+              ctx.fillText(glyph, x + cellX * 0.5, y + cellY * 0.5);
+            }
+          }
+          if (!reduced.matches) frameId = requestAnimationFrame(draw);
+        }
+
+        function restart() {
+          if (frameId) cancelAnimationFrame(frameId);
+          resize();
+          draw();
+        }
+        window.addEventListener("resize", restart);
+        reduced.addEventListener("change", restart);
+        restart();
+      }
+      initField();
+    </script>
+  </body>
+</html>
