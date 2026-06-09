@@ -46,6 +46,12 @@
         font-weight: 400;
       }
 
+      /* always reserve the scrollbar gutter so a scrollbar appearing on one
+         page never shifts the centered layout relative to the others */
+      html {
+        scrollbar-gutter: stable;
+      }
+
       body {
         min-height: 100dvh;
         padding: clamp(1rem, 4vw, 3rem);
@@ -227,7 +233,7 @@
       }
 
       .field {
-        margin-bottom: 1.35rem;
+        margin-bottom: 1rem;
       }
 
       /* dropzone */
@@ -236,9 +242,9 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.55rem;
-        min-height: 132px;
-        padding: 1.5rem;
+        gap: 0.5rem;
+        min-height: 110px;
+        padding: 1.2rem;
         text-align: center;
         background: rgba(8, 9, 11, 0.96);
         border: 1px dashed var(--border-soft);
@@ -409,7 +415,7 @@
       .divider {
         border: 0;
         border-top: 1px dashed var(--border);
-        margin: 1.5rem 0;
+        margin: 1.1rem 0;
       }
 
       .btn {
@@ -580,7 +586,10 @@
           align-items: flex-start;
           gap: 0.35rem;
         }
-        .readout,
+        .readout {
+          grid-template-columns: 1fr;
+        }
+
         .opt-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -637,7 +646,7 @@
               <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choose or drop a file">
                 <span class="glyph" aria-hidden="true">[ ↑ ]</span>
                 <span id="drop-label">drop a file here, or click to browse</span>
-                <span class="hint" id="drop-hint">nothing leaves your machine until you arm it</span>
+                <span class="hint" id="drop-hint"></span>
               </div>
               <input type="file" id="file-input" hidden />
             </div>
