@@ -2,10 +2,16 @@ import os
 import re
 
 from flask import Flask, request, jsonify, send_file, render_template, abort
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 import store
 
 app = Flask(__name__)
+
+# Behind Caddy (which terminates TLS and proxies over plain HTTP), trust the
+# X-Forwarded-Proto/Host headers so generated share links are
+# https://send.emlw.dev/... rather than http://...
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 MAX_FILE_MB = int(os.environ.get("SEND_MAX_FILE_MB", "4096"))
 MAX_TOTAL_MB = int(os.environ.get("SEND_MAX_TOTAL_MB", "20480"))
