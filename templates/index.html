@@ -60,7 +60,7 @@
         height: 100%;
         pointer-events: none;
         z-index: 0;
-        opacity: 0.6;
+        opacity: 0.42;
         mix-blend-mode: screen;
       }
 
@@ -976,15 +976,15 @@
             // deterministic per-column speed/length so streams differ
             const seed = Math.sin(col * 12.9898) * 43758.5453;
             const rnd = seed - Math.floor(seed);
-            const speed = 5 + rnd * 9; // rows per second
-            const trail = 6 + Math.floor(rnd * 9);
+            const speed = 3 + rnd * 4; // calmer fall
+            const trail = 9 + Math.floor(rnd * 10);
             const head = (time * speed + rnd * (rows + trail)) % (rows + trail);
             for (let d = 0; d < trail; d += 1) {
               const r0 = Math.floor(head) - d;
               if (r0 < 0 || r0 >= rows) continue;
               const y = r0 * cellY;
-              const bright = 1 - d / trail;
-              const bit = (Math.floor(time * 9 + col * 7 + r0 * 3) & 1) ? "1" : "0";
+              const bright = Math.pow(1 - d / trail, 1.5); // gentle, smooth tail
+              const bit = ((col * 7 + r0 * 3) & 1) ? "1" : "0"; // stable, no strobe
               let cr, cg, cb;
               if (d === 0) {
                 cr = signal.r;
@@ -995,7 +995,7 @@
                 cg = Math.round(dim.g + (accent.g - dim.g) * bright);
                 cb = Math.round(dim.b + (accent.b - dim.b) * bright);
               }
-              ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.12 + bright * 0.55})`;
+              ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${0.04 + bright * 0.38})`;
               ctx.fillText(bit, x + cellX * 0.5, y + cellY * 0.5);
             }
           }
